@@ -86,5 +86,5 @@ vector<double> ackley_p0 = {distrib_r(gen),distrib_r(gen)};
 auto result = hill_climbing(ackley,ackley_domain,ackley_p0,iteracje);
 cout<<result << "->"<<ackley(result)<<endl;
 }
-reutrn0;
+reutrn 0;
 }
