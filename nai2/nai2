@@ -31,7 +31,7 @@ vector<double> hillClimbing(function<double(vector<double>)> f, function<bool(ve
     for (int i = 0; i < iterations; i++) {
         auto p2 = p;
 
-        p[distrib(gen)] += distrib_r(gen);
+        p2[distrib(gen)] += distrib_r(gen);
         double y2 = f(p2);
         if (y2 < f(p)) {
             p = p2;
