@@ -25,7 +25,7 @@ vector<double> simulated_annealing(function<double(vector<double>)> f,function<b
     auto s_current = p0;
     auto s_global_best = p0;
 
-    //    uniform_int_distribution<> distrib(0, p.size() - 1);
+   
     uniform_real_distribution<> u_k(0.0, 1.0);
 
     if (!f_domain(s_current)) throw std::invalid_argument("The p0 point must be in domain");
@@ -41,7 +41,7 @@ vector<double> simulated_annealing(function<double(vector<double>)> f,function<b
                 s_current = s_next;
             }
             else {
-                // nothing...
+              
             }
         }
         if (f(s_current) < f(s_global_best)) {
@@ -68,6 +68,7 @@ vector<double> hillClimbing(function<double(vector<double>)> f, function<bool(ve
             double y2 = f(p2);
             if (y2 < f(p)) {
                 p = p2;
+                cout<<p<<" "<<f(p)<<endl;
             }
         }
     }
@@ -117,7 +118,6 @@ int main() {
         cin >> wybor2;
         if (wybor2 == 1) {
             auto result = hillClimbing(boothFunction, boothDomain, boothP0, distanceBetweenPoints, iteracje);
-            cout << result << "->" << boothFunction(result) << endl;
         }
         else if (wybor2 == 2) {
             auto result = simulated_annealing(boothFunction,boothDomain,boothP0,iteracje, [](auto p) {
@@ -139,7 +139,6 @@ int main() {
         cin >> wybor2;
         if (wybor2 == 1) {
             auto result = hillClimbing(ackley, ackleyDomain, ackleyP0, distanceBetweenPoints, iteracje);
-            cout << result << " -> " << ackley(result) << endl;
         }
         else if (wybor2 == 2) {
             auto result = simulated_annealing(ackley, ackleyDomain, ackleyP0, iteracje, [](auto p) {
