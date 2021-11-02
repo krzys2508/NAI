@@ -1,0 +1,271 @@
+#include <iostream>
+#include <math.h>
+#define M_PI 3.1415926535
+#define M_E 2.7182818284590452
+#include <vector>
+#include <cstdio>
+#include <random>
+#include <functional>
+using namespace std;
+
+using genotype_t = vector<char>;
+using population_t = vector<genotype_t>;
+using population_fitness_t = vector<double>;
+random_device rd;
+mt19937 gen(rd());
+
+random_device random_dev;
+default_random_engine random_engine(random_dev());
+uniform_real_distribution<double> double_random_dist(0.0, 1.0);
+uniform_int_distribution<char> rand_01(0, 1);
+ostream &operator<<(ostream &o, vector<double> v)
+{
+    for (auto e : v)
+    {
+        o << e << ",";
+    }
+    return o;
+}
+
+
+pair<genotype_t, genotype_t> empty_crossover_f(genotype_t a, genotype_t b)
+{
+    return {a, b};
+}
+genotype_t empty_mutation_f(genotype_t a, double)
+{
+    return a;
+}
+
+vector<int> selection_roulette(population_fitness_t fitnesses)
+{
+    vector<int> ret;
+    double sum_fit = accumulate(fitnesses.begin(), fitnesses.end(), 0.0);
+   uniform_real_distribution<double> random_distr(0.0, sum_fit);
+    for (int j = 0; j < fitnesses.size(); j++) {
+        double rand_selected = random_distr(random_engine);
+        double s = fitnesses[0];
+        int selected_i = fitnesses.size() - 1;
+        for (int i = 0; i < fitnesses.size() - 1; i++) {
+            if (s > rand_selected) {
+                selected_i = i;
+                break;
+            }
+            s = s + fitnesses[i + 1];
+        }
+
+        ret.push_back(selected_i);
+    }
+    return ret;
+}
+
+population_t genetic_algorithm(
+    function<double(genotype_t)> fitnes_f,
+    const population_t init_population,
+    double crossover_probability,
+    double mutation_probability,
+    function<pair<genotype_t, genotype_t>(genotype_t, genotype_t)> crossover_f,
+    function<genotype_t(genotype_t, double)> mutation_f,
+    function<vector<int>(population_fitness_t)> select_f,
+    function<bool(population_t, population_fitness_t, int)> termination_cond = [](auto, auto, auto i)
+    { return i < 100; })
+{
+    int iteration = 0;
+    population_t population = init_population;
+    population_fitness_t population_fit;
+    for (auto &gene : population)
+        population_fit.push_back(fitnes_f(gene));
+    while (termination_cond(population, population_fit, iteration))
+    {
+        vector<int> parent_pop_i = select_f(population_fit);
+
+        population_t offspring_pop(parent_pop_i.size());
+        for (int i = 1; i < parent_pop_i.size(); i += 2)
+        {
+            int parent_idx_0 = parent_pop_i[i - 1];
+            int parent_idx_1 = parent_pop_i[i];
+            if (double_random_dist(random_engine) < crossover_probability)
+            {
+                auto [a, b] = crossover_f(population[parent_idx_0], population[parent_idx_1]);
+                offspring_pop[i - 1] = a;
+                offspring_pop[i] = b;
+            }
+            else
+            {
+                offspring_pop[i - 1] = population[parent_idx_0];
+                offspring_pop[i] = population[parent_idx_1];
+            }
+        }
+
+        for (int i = 0; i < parent_pop_i.size(); i++)
+        {
+            offspring_pop[i] = mutation_f(offspring_pop[i], mutation_probability);
+        }
+
+        population = offspring_pop;
+
+        for (int i = 0; i < population.size(); i++)
+            population_fit[i] = fitnes_f(population[i]);
+        iteration++;
+    }
+
+    return population;
+}
+
+vector<double> simulated_annealing(function<double(vector<double>)> f, function<bool(vector<double>)> f_domain, vector<double> p0, int iterations, function<vector<double>(vector<double>)> N, function<double(int)> T)
+{
+    auto currentPoint = p0;
+    auto best = p0;
+
+    uniform_real_distribution<> u_k(0.0, 1.0);
+
+    if (!f_domain(currentPoint))
+        throw std::invalid_argument("The p0 point must be in domain");
+    for (int k = 0; k < iterations; k++)
+    {
+        auto nextPoint = N(currentPoint);
+        if (!f_domain(nextPoint))
+            continue;
+        if (f(nextPoint) < f(currentPoint))
+        {
+            currentPoint = nextPoint;
+        }
+        else
+        {
+            double u = u_k(gen);
+            if (u < exp(-abs(f(nextPoint) - f(currentPoint)) / T(k)))
+            {
+                currentPoint = nextPoint;
+            }
+            else
+            {
+            }
+        }
+        if (f(currentPoint) < f(best))
+        {
+            best = currentPoint;
+        }
+    }
+    return best;
+}
+
+vector<double> hillClimbing(function<double(vector<double>)> f, function<bool(vector<double>)> f_domain, vector<double> p0, vector<double> distanceBetweenPoints, int iterations)
+{
+    auto p = p0;
+    double a = distanceBetweenPoints.at(0);
+    double b = distanceBetweenPoints.at(1);
+    uniform_int_distribution<> distrib(0, p.size() - 1);
+    uniform_real_distribution<> distrib_r(a, b);
+    if (!f_domain(p))
+        throw std::invalid_argument("The p0 point must be in domain");
+    for (int i = 0; i < iterations; i++)
+    {
+        auto p2 = p;
+        p2[distrib(gen)] += distrib_r(gen);
+        if (f_domain(p2))
+        {
+            double y2 = f(p2);
+            if (y2 < f(p))
+            {
+                p = p2;
+            }
+        }
+    }
+    return p;
+}
+
+auto boothFunction = [](vector<double> v)
+{
+    double x = v.at(0);
+    double y = v.at(1);
+    double results;
+    results = pow((x + (2 * y) - 7), 2) + pow(((2 * x) + y - 5), 2);
+    return results;
+};
+
+auto ackley = [](vector<double> v)
+{
+    double x = v.at(0);
+    double y = v.at(1);
+    double results;
+    results = -20 * exp(-0.2 * sqrt(0.5 * (x * x + y * y))) - exp(0.5 * (cos(2 * M_PI * x) + cos(2 * M_PI * y))) + M_E + 20.0;
+    return results;
+};
+
+auto ackleyDomain = [](vector<double> v)
+{
+    return (abs(v[0]) <= 5) && (abs(v[1]) <= 5);
+};
+auto boothDomain = [](vector<double> v)
+{
+    return (abs(v[0]) <= 10) && (abs(v[1]) <= 10);
+};
+
+int main()
+{
+    using namespace std;
+    vector<double> numbers;
+    int wybor;
+    cout << "Wybierz funkcje optymalizacyjna: 1 = Booth 2 = Ackley ";
+    cin >> wybor;
+    int iteracje;
+    int wybor2;
+    vector<double> distanceBetweenPoints{-0.1, 0.1};
+    if (wybor == 1)
+    {
+        cout << "Podaj ilosc iteracji" << endl;
+        cin >> iteracje;
+        uniform_real_distribution<> distrib_r(-10, 10);
+        vector<double> boothP0 = {distrib_r(gen), distrib_r(gen)};
+        cout << "Wybierz algorytm : 1 = HillClimbing 2 = SimulatedAnnealing ";
+        cin >> wybor2;
+        if (wybor2 == 1)
+        {
+            auto result = hillClimbing(boothFunction, boothDomain, boothP0, distanceBetweenPoints, iteracje);
+            cout << result << "->" << boothFunction(result) << endl;
+        }
+        else if (wybor2 == 2)
+        {
+            auto result = simulated_annealing(
+                boothFunction, boothDomain, boothP0, iteracje, [](auto p)
+                {
+                    normal_distribution<double> n(0.0, 0.3);
+                    for (auto& e : p) {
+                        e = e + n(gen);
+                    }
+                    return p; },
+                [](int k)
+                { return 1000.0 / k; });
+            cout << result << " -> " << boothFunction(result) << endl;
+        }
+    }
+    else if (wybor == 2)
+    {
+        cout << "Podaj ilosc iteracji" << endl;
+        cin >> iteracje;
+        uniform_real_distribution<> distrib_r(-5, 5);
+        vector<double> ackleyP0 = {distrib_r(gen), distrib_r(gen)};
+        cout << "Wybierz algorytm : 1 = HillClimbing 2 = SimulatedAnnealing ";
+        cin >> wybor2;
+        if (wybor2 == 1)
+        {
+            auto result = hillClimbing(ackley, ackleyDomain, ackleyP0, distanceBetweenPoints, iteracje);
+            cout << result << " -> " << ackley(result) << endl;
+        }
+        else if (wybor2 == 2)
+        {
+            auto result = simulated_annealing(
+                ackley, ackleyDomain, ackleyP0, iteracje, [](auto p)
+                {
+                normal_distribution<double> n(0.0, 0.3);
+                for (auto& e : p) {
+                    e = e + n(gen);
+                }
+                return p; },
+                [](int k)
+                { return 1000.0 / k; });
+            cout << result << " -> " << ackley(result) << endl;
+        }
+    }
+    return 0;
+}
