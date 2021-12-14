@@ -1,0 +1,3 @@
+/Users/Krzys/Desktop/nai8/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/Krzys/Desktop/nai8/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/Krzys/Desktop/nai8/cmake-build-debug/CMakeFiles/nai6.dir
