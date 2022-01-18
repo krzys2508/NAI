@@ -47,6 +47,7 @@ vector<double> simulated_annealing(function<double(vector<double>)> f, function<
         if (f(currentPoint) < f(best)) {
             best = currentPoint;
         }
+        out<<k<<" "<<f(s_current)<<endl;
     }
     return best;
 }
@@ -68,6 +69,7 @@ vector<double> hillClimbing(function<double(vector<double>)> f, function<bool(ve
                 p = p2;
             }
         }
+        out<<i<<" "<<f(p)<<endl;
     }
     return p;
 }
