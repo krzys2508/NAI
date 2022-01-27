@@ -53,16 +53,41 @@ int main(int argc, char* argv[]){
             {"D13", "Overcast", "Hot","Normal", "Weak"},
             {"D14", "Rain", "Mild", "High", "Strong"}
     };
+    vector<string> decisionsExpected = {
+    {"cannot play"},
+    {"Cannot play"},
+    {"Can play"},
+    {"Can play"},
+    {"Can play"},
+    {"Cannot play"},
+    {"Can play"},
+    {"Cannot play"},
+    {"Can play"},
+    { "Can play"},
+    { "Can play"},
+    { "Can play"},
+    { "Can play"}
+};
 
     pair<string, bool> decision;
+    int check;
     for (int i = 0; i<decisionsToMake.size();i++){
         decision = decide(decisionsToMake[i]);
         cout <<"Day "<<i << " : ";
         if (decision.second == true){
+             check = 1;
         cout<<"Can play ";
         }
         else {
+             check =0;
             cout<<"Cannot play ";
+        }
+        cout<<" "<<" Expected: "<<decisionsExpected[i];
+        if (check==1){
+            cout << " Its a match!";
+        }
+        else if (check ==0){
+            cout<<"Something went wrong!";
         }
         cout << endl;
     }
